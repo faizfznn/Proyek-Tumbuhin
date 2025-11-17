@@ -16,7 +16,7 @@ public class FPSController : MonoBehaviour
     // ----------------------------------------
 
     // --- PENTING: Nilai ini HARUS tetap kecil ---
-    public float lookSpeed = 0.5f;
+    public float lookSpeed = 0.2f;
     // JANGAN UBAH MENJADI 2f. Penjelasan di bawah.
     // ----------------------------------------
 
