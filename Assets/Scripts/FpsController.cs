@@ -114,9 +114,7 @@ public class FPSController : MonoBehaviour
         if (anim != null)
         {
             // 1. Tetap kirim parameter pendukung (opsional, biar aman)
-            anim.SetFloat("MotionSpeed", 1f);
             anim.SetBool("Grounded", characterController.isGrounded);
-            anim.SetBool("FreeFall", !characterController.isGrounded);
 
             // 2. Kirim nilai "MoveSpeed"
             // Logic: 
