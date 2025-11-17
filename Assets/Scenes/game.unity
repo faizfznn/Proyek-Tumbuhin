@@ -1061,8 +1061,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1800448750}
   - component: {fileID: 1800448749}
-  - component: {fileID: 1800448748}
   - component: {fileID: 1800448751}
+  - component: {fileID: 1800448752}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1070,26 +1070,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1800448748
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1800448747}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00dc5901a3e7a89499883f73ff013478, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerCamera: {fileID: 963194227}
-  walkSpeed: 6
-  runSpeed: 12
-  jumpPower: 7
-  gravity: 10
-  lookSpeed: 2
-  lookXLimit: 45
-  canMove: 1
 --- !u!143 &1800448749
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1191,6 +1171,27 @@ SpriteRenderer:
   m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &1800448752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1800448747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00dc5901a3e7a89499883f73ff013478, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FPSController
+  playerCamera: {fileID: 963194227}
+  walkSpeed: 6
+  runSpeed: 12
+  jumpPower: 12
+  gravity: 30
+  lookSpeed: 0.2
+  lookXLimit: 45
+  anim: {fileID: 0}
+  canMove: 1
 --- !u!1 &1983103686
 GameObject:
   m_ObjectHideFlags: 0
