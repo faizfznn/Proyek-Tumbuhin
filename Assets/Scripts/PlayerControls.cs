@@ -127,6 +127,15 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Pause"",
+                    ""type"": ""Button"",
+                    ""id"": ""3b261c01-0982-4ac9-83fc-a7ae002996eb"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -217,6 +226,17 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""action"": ""Run"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5ec8f753-5d5f-4a1e-84bf-fccf2d2663f8"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Pause"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -229,6 +249,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Player_Look = m_Player.FindAction("Look", throwIfNotFound: true);
         m_Player_Jump = m_Player.FindAction("Jump", throwIfNotFound: true);
         m_Player_Run = m_Player.FindAction("Run", throwIfNotFound: true);
+        m_Player_Pause = m_Player.FindAction("Pause", throwIfNotFound: true);
     }
 
     ~@PlayerControls()
@@ -313,6 +334,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Look;
     private readonly InputAction m_Player_Jump;
     private readonly InputAction m_Player_Run;
+    private readonly InputAction m_Player_Pause;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -340,6 +362,10 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Run".
         /// </summary>
         public InputAction @Run => m_Wrapper.m_Player_Run;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Pause".
+        /// </summary>
+        public InputAction @Pause => m_Wrapper.m_Player_Pause;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -378,6 +404,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Run.started += instance.OnRun;
             @Run.performed += instance.OnRun;
             @Run.canceled += instance.OnRun;
+            @Pause.started += instance.OnPause;
+            @Pause.performed += instance.OnPause;
+            @Pause.canceled += instance.OnPause;
         }
 
         /// <summary>
@@ -401,6 +430,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Run.started -= instance.OnRun;
             @Run.performed -= instance.OnRun;
             @Run.canceled -= instance.OnRun;
+            @Pause.started -= instance.OnPause;
+            @Pause.performed -= instance.OnPause;
+            @Pause.canceled -= instance.OnPause;
         }
 
         /// <summary>
@@ -469,5 +501,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnRun(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Pause" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnPause(InputAction.CallbackContext context);
     }
 }

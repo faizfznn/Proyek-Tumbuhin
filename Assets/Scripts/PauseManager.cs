@@ -1,96 +1,137 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // Diperlukan untuk memuat scene
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Mengelola status Pause dan Resume game.
-/// Skrip ini harus ditempatkan pada sebuah GameObject di scene 'game' (misal: GameManager).
-/// </summary>
 public class PauseManager : MonoBehaviour
 {
-    // Referensi ke panel UI yang akan ditampilkan/disembunyikan.
-    // Hubungkan (drag) 'Panel Pause Menu' Anda ke slot ini di Inspector.
-    public GameObject panelPauseMenu;
+    [Header("Referensi UI")]
+    public GameObject pausePanel;
 
-    // Variabel statis untuk melacak status game, bisa diakses dari skrip lain jika perlu.
-    public static bool isGamePaused = false;
+    [Header("Referensi Pemain")]
+    public FPSController fpsController;
 
-    void Start()
+    // --- BARIS BARU 1 ---
+    [Header("Referensi Audio")]
+    public AudioSource gameMusicSource; // Slot untuk AudioSource di scene 'game'
+
+    // Variabel internal
+    private PlayerControls playerControls;
+    private InputAction pauseAction;
+    private bool isPaused = false;
+
+    void Awake()
     {
-        // Pastikan pada awal scene 'game',
-        // panel pause disembunyikan dan game berjalan normal.
-        panelPauseMenu.SetActive(false);
-        Time.timeScale = 1f; // 1f = kecepatan normal
-        isGamePaused = false;
-    }
-
-    void Update()
-    {
-        // Mendeteksi 'Keybind' tombol Escape
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (fpsController == null)
         {
-            // Memanggil fungsi TogglePause
-            TogglePause();
+            Debug.LogError("Referensi FPSController belum di-set di PauseManager!");
+            return;
+        }
+
+        // --- BLOK BARU (Otomatisasi) ---
+        // Coba ambil AudioSource secara otomatis jika belum di-set
+        if (gameMusicSource == null)
+        {
+            gameMusicSource = GetComponent<AudioSource>();
+        }
+        if (gameMusicSource == null)
+        {
+            Debug.LogWarning("Referensi AudioSource (Game Music Source) belum di-set di PauseManager.");
+        }
+        // --- END BLOK BARU ---
+
+        playerControls = new PlayerControls();
+        pauseAction = playerControls.Player.Pause;
+
+        if (pauseAction == null)
+        {
+            Debug.LogError("Action 'Pause' tidak ditemukan!");
         }
     }
 
-    /// <summary>
-    /// Fungsi ini akan membolak-balik status pause (pause jika sedang play, play jika sedang pause).
-    /// Fungsi ini akan kita gunakan untuk 'Pause Button' dan 'Back Button'.
-    /// </summary>
-    public void TogglePause()
+    void Start()
     {
-        if (isGamePaused)
+        ResumeGame();
+    }
+
+    void OnEnable()
+    {
+        if (pauseAction != null)
         {
-            // Jika sedang pause, panggil ResumeGame()
+            playerControls.Player.Enable();
+            pauseAction.performed += OnPausePerformed;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (pauseAction != null)
+        {
+            pauseAction.performed -= OnPausePerformed;
+            playerControls.Player.Disable();
+        }
+    }
+
+    private void OnPausePerformed(InputAction.CallbackContext context)
+    {
+        if (isPaused)
+        {
             ResumeGame();
         }
         else
         {
-            // Jika sedang play, panggil PauseGame()
             PauseGame();
         }
     }
 
-    /// <summary>
-    /// Menghentikan game dan menampilkan menu pause.
-    /// </summary>
-    void PauseGame()
+    public void PauseGame()
     {
-        panelPauseMenu.SetActive(true);
-        Time.timeScale = 0f; // Menghentikan semua pergerakan dan fisika
-        isGamePaused = true;
+        isPaused = true;
+        pausePanel.SetActive(true);
+        Time.timeScale = 0f;
+        fpsController.enabled = false;
 
-        // Opsional: Tampilkan kursor mouse agar bisa klik tombol
-        // Cursor.lockState = CursorLockMode.None;
-        // Cursor.visible = true;
+        // --- BARIS BARU 2 ---
+        // Jeda musiknya
+        if (gameMusicSource != null)
+        {
+            gameMusicSource.Pause();
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
-    /// <summary>
-    /// Melanjutkan game dan menyembunyikan menu pause.
-    /// </summary>
-    void ResumeGame()
+    public void ResumeGame()
     {
-        panelPauseMenu.SetActive(false);
-        Time.timeScale = 1f; // Mengembalikan kecepatan game ke normal
-        isGamePaused = false;
-
-        // Opsional: Sembunyikan kembali kursor mouse
-        // Cursor.lockState = CursorLockMode.Locked;
-        // Cursor.visible = false;
-    }
-
-    /// <summary>
-    /// Fungsi untuk 'Quit Button'.
-    /// Akan kembali ke scene 'main menu'.
-    /// </summary>
-    public void QuitToMainMenu()
-    {
-        // PENTING: Selalu set Time.timeScale kembali ke 1 sebelum pindah scene!
-        // Jika tidak, scene 'main menu' mungkin akan ikut ter-pause.
+        isPaused = false;
+        pausePanel.SetActive(false);
         Time.timeScale = 1f;
-        isGamePaused = false;
+        fpsController.enabled = true;
 
-        // Pastikan nama scene "main menu" sudah benar (case sensitive)
-        SceneManager.LoadScene("main menu");
+        // --- BARIS BARU 3 ---
+        // Lanjutkan lagi musiknya
+        if (gameMusicSource != null && Time.timeScale > 0) // Pastikan game benar-benar resume
+        {
+            gameMusicSource.UnPause();
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    // --- Fungsi untuk Tombol (Button) ---
+
+    public void OnResumeButtonPressed()
+    {
+        ResumeGame();
+    }
+
+    public void OnQuitToMenuPressed()
+    {
+        Time.timeScale = 1f;
+        // Kita tidak perlu mematikan musik di sini.
+        // Saat scene "main menu" dimuat, AudioSource ini akan hancur
+        // dan AudioSource di "main menu" akan otomatis 'Play On Awake'.
+        SceneManager.LoadScene("main menu"); // (Ganti ini jika menggunakan Scene Transition)
     }
 }
