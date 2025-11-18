@@ -81,7 +81,6 @@ public class FPSController : MonoBehaviour
         if (jumpPressed && canMove && characterController.isGrounded)
         {
             moveDirection.y = jumpPower;
-            if (anim != null) anim.SetTrigger("Jump");
         }
         else
         {
