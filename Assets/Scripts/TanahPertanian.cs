@@ -1,17 +1,19 @@
 using UnityEngine;
+using System.Collections; // Wajib untuk fitur animasi Coroutine
 
 public class TanahPertanian : MonoBehaviour
 {
-    // Kita pecah status 'AdaBibit' menjadi 'Kering' dan 'Basah'
+    // Status tanah
     public enum StatusTanah { Kosong, Kering, Basah, SiapPanen }
 
     [Header("Info Status")]
     public StatusTanah statusSaatIni = StatusTanah.Kosong;
 
     [Header("Visual Tanah")]
-    public MeshRenderer rendererTanah; // Drag MeshRenderer tanah ke sini di Inspector
-    public Color warnaKering = Color.white; // Warna tanah biasa
-    public Color warnaBasah = new Color(0.4f, 0.2f, 0f); // Warna coklat tua (disiram)
+    // [HideInInspector] // Aktifkan jika ingin menyembunyikan dari Inspector
+    public MeshRenderer rendererTanah;
+    public Color warnaKering = Color.white;
+    public Color warnaBasah = new Color(0.4f, 0.2f, 0f);
 
     [Header("Pengaturan")]
     public Transform spawnPoint;
@@ -20,50 +22,30 @@ public class TanahPertanian : MonoBehaviour
     private GameObject modelTanamanSaatIni;
     private CropData dataTanaman;
     private int faseSekarang = 0;
-    private float timerPertumbuhan = 0f; // Timer manual
+    private float timerPertumbuhan = 0f;
 
-    void Awake() // Gunakan Awake agar dijalankan paling awal
+    void Awake()
     {
-        // --- PERBAIKAN TOTAL: PAKSA CARI KOMPONEN SENDIRI ---
-        // Kita HAPUS pengecekan "if (rendererTanah == null)"
-        // Kita paksa script mengambil MeshRenderer milik objek ini, 
-        // tidak peduli apa yang tertulis di Inspector.
-
+        // --- AUTO DETECT RENDERER (Supaya tidak perlu drag-drop manual) ---
         rendererTanah = GetComponent<MeshRenderer>();
+        if (rendererTanah == null) rendererTanah = GetComponentInChildren<MeshRenderer>();
 
-        // Jika tidak ketemu di objek utama, cari di anak objek (child)
-        if (rendererTanah == null)
-        {
-            rendererTanah = GetComponentInChildren<MeshRenderer>();
-        }
-
-        // Validasi terakhir
-        if (rendererTanah == null)
-        {
-            Debug.LogError("ERROR FATAL: Tidak ada MeshRenderer di " + gameObject.name);
-        }
-        else
-        {
-            // PENTING: Akses .material untuk membuat instance unik
-            // Ini mencegah satu lahan berubah warna ikut mengubah lahan lain (Material Leaking)
-            Material unikMaterial = rendererTanah.material;
-        }
+        // Buat instance material agar warna unik per petak
+        if (rendererTanah != null) { Material unik = rendererTanah.material; }
     }
 
     void Start()
     {
-        // Set warna awal di sini
         UbahWarnaTanah(warnaKering);
     }
 
     void Update()
     {
-        // LOGIKA UTAMA: Hanya tumbuh jika statusnya BASAH
+        // Logika Timer: Hanya jalan jika tanah BASAH dan belum panen
         if (statusSaatIni == StatusTanah.Basah)
         {
             timerPertumbuhan += Time.deltaTime;
 
-            // Cek apakah waktu fase ini sudah selesai?
             if (timerPertumbuhan >= dataTanaman.waktuTumbuhPerFase)
             {
                 TumbuhSatuLevel();
@@ -79,57 +61,55 @@ public class TanahPertanian : MonoBehaviour
             faseSekarang = 0;
             timerPertumbuhan = 0f;
 
-            // Saat pertama ditanam, tanah dalam kondisi KERING (Butuh air pertama)
+            // Set status awal: Kering (Perlu disiram pertama kali)
             statusSaatIni = StatusTanah.Kering;
             UbahWarnaTanah(warnaKering);
 
             UpdateTampilanVisual();
-            Debug.Log("Menanam " + bibitBaru.namaTanaman + ". Tanah Kering, perlu disiram!");
         }
     }
 
-    // Fungsi Baru: Menyiram Tanaman
     public void SiramTanaman()
     {
         if (statusSaatIni == StatusTanah.Kering)
         {
             statusSaatIni = StatusTanah.Basah;
-            UbahWarnaTanah(warnaBasah); // Ubah jadi gelap
-            Debug.Log("Tanaman disiram! Mulai tumbuh...");
+            UbahWarnaTanah(warnaBasah);
         }
     }
 
     void TumbuhSatuLevel()
     {
         faseSekarang++;
-        timerPertumbuhan = 0f; // Reset timer untuk fase berikutnya
+        timerPertumbuhan = 0f;
         UpdateTampilanVisual();
 
-        // Cek apakah sudah tahap terakhir (Siap Panen)?
         if (faseSekarang >= dataTanaman.modelFase.Length - 1)
         {
             statusSaatIni = StatusTanah.SiapPanen;
-            UbahWarnaTanah(warnaKering); // Kembalikan warna normal saat panen
-            Debug.Log("Tanaman Siap Panen!");
+            UbahWarnaTanah(warnaKering); // Balik kering saat siap panen
         }
         else
         {
-            // Jika belum panen, tanah KEMBALI KERING (Pemain harus siram lagi)
-            statusSaatIni = StatusTanah.Kering;
+            statusSaatIni = StatusTanah.Kering; // Balik kering, minta disiram lagi
             UbahWarnaTanah(warnaKering);
-            Debug.Log("Tanaman tumbuh besar. Tanah kembali kering!");
         }
     }
 
     void UpdateTampilanVisual()
     {
+        // Hapus model lama
         if (modelTanamanSaatIni != null) Destroy(modelTanamanSaatIni);
 
+        // Munculkan model baru sesuai fase
         if (faseSekarang < dataTanaman.modelFase.Length)
         {
             GameObject modelBaru = dataTanaman.modelFase[faseSekarang];
             modelTanamanSaatIni = Instantiate(modelBaru, spawnPoint.position, Quaternion.identity);
             modelTanamanSaatIni.transform.parent = this.transform;
+
+            // --- [BAGIAN BARU] JALANKAN ANIMASI POP-UP ---
+            StartCoroutine(AnimasiPopUp(modelTanamanSaatIni.transform));
         }
     }
 
@@ -142,16 +122,40 @@ public class TanahPertanian : MonoBehaviour
             dataTanaman = null;
             faseSekarang = 0;
             timerPertumbuhan = 0;
-            Debug.Log("Panen Berhasil!");
         }
     }
 
-    // Helper untuk ubah warna material tanah
     void UbahWarnaTanah(Color warnaTarget)
     {
-        if (rendererTanah != null)
+        if (rendererTanah != null) rendererTanah.material.color = warnaTarget;
+    }
+
+    // --- [FITUR BARU] FUNGSI ANIMASI POP-UP ---
+    IEnumerator AnimasiPopUp(Transform target)
+    {
+        float durasi = 0.4f; // Kecepatan animasi (makin kecil makin cepat)
+        float timer = 0f;
+
+        Vector3 skalaAwal = Vector3.zero;      // Mulai dari 0
+        Vector3 skalaAkhir = Vector3.one;      // Ke ukuran asli (1)
+
+        target.localScale = skalaAwal; // Set awal jadi 0
+
+        while (timer < durasi)
         {
-            rendererTanah.material.color = warnaTarget;
+            timer += Time.deltaTime;
+            float progress = timer / durasi;
+
+            // --- RUMUS MATEMATIKA "ELASTIC OUT" ---
+            // Ini bikin efek membal sedikit melebihi ukuran asli lalu kembali normal
+            float curve = Mathf.Sin(progress * Mathf.PI * (0.2f + 2.5f * progress * progress * progress)) * Mathf.Pow(1f - progress, 2.2f) + progress;
+
+            // Terapkan skala
+            target.localScale = Vector3.LerpUnclamped(skalaAwal, skalaAkhir, curve);
+
+            yield return null; // Tunggu frame berikutnya
         }
+
+        target.localScale = skalaAkhir; // Pastikan ukuran final pas 1
     }
 }
