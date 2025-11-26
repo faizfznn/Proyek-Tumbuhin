@@ -22,9 +22,37 @@ public class TanahPertanian : MonoBehaviour
     private int faseSekarang = 0;
     private float timerPertumbuhan = 0f; // Timer manual
 
+    void Awake() // Gunakan Awake agar dijalankan paling awal
+    {
+        // --- PERBAIKAN TOTAL: PAKSA CARI KOMPONEN SENDIRI ---
+        // Kita HAPUS pengecekan "if (rendererTanah == null)"
+        // Kita paksa script mengambil MeshRenderer milik objek ini, 
+        // tidak peduli apa yang tertulis di Inspector.
+
+        rendererTanah = GetComponent<MeshRenderer>();
+
+        // Jika tidak ketemu di objek utama, cari di anak objek (child)
+        if (rendererTanah == null)
+        {
+            rendererTanah = GetComponentInChildren<MeshRenderer>();
+        }
+
+        // Validasi terakhir
+        if (rendererTanah == null)
+        {
+            Debug.LogError("ERROR FATAL: Tidak ada MeshRenderer di " + gameObject.name);
+        }
+        else
+        {
+            // PENTING: Akses .material untuk membuat instance unik
+            // Ini mencegah satu lahan berubah warna ikut mengubah lahan lain (Material Leaking)
+            Material unikMaterial = rendererTanah.material;
+        }
+    }
+
     void Start()
     {
-        // Set warna awal
+        // Set warna awal di sini
         UbahWarnaTanah(warnaKering);
     }
 
