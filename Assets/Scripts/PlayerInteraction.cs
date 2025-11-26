@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections; // Wajib untuk Coroutine
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -11,102 +12,131 @@ public class PlayerInteraction : MonoBehaviour
     public GameObject panelIndikator;
     public TextMeshProUGUI teksIndikator;
 
-    [Header("Sistem Bibit (Isi 4 Slot)")]
+    [Header("Sistem Bibit")]
     public CropData[] daftarBibit;
     private int indexBibitTerpilih = 0;
 
+    [Header("Animasi")]
+    public Animator playerAnimator; // Masukkan Animator karakter di sini
+    public float delayAnimasi = 0.5f; // Waktu tunggu sampai tangan menyentuh tanah
+    private bool sedangBerinteraksi = false; // Mencegah spam tombol
+
     void Update()
     {
-        // --- FITUR GANTI BIBIT (Tombol 1, 2, 3, 4) ---
+        // Jangan proses input jika sedang animasi
+        if (sedangBerinteraksi) return;
+
         PilihBibitInput();
 
-        // --- LOGIKA RAYCAST ---
         Ray ray = new Ray(transform.position, transform.forward);
         RaycastHit hit;
-
         bool melihatTanah = Physics.Raycast(ray, out hit, jarakAmbil, layerTanah);
 
-        // Reset panel jika tidak melihat tanah, lalu return agar tidak lanjut ke bawah
         if (!melihatTanah)
         {
             if (panelIndikator.activeSelf) panelIndikator.SetActive(false);
             return;
         }
 
-        // Cari script tanah
         TanahPertanian tanah = hit.collider.GetComponent<TanahPertanian>();
 
         if (tanah != null)
         {
             panelIndikator.SetActive(true);
+            UpdateTeksIndikator(tanah); // Fungsi helper biar rapi (lihat bawah)
 
-            // Ambil data bibit yang sedang dipilih dari array
-            // Pastikan array tidak kosong untuk mencegah error IndexOutRange
-            CropData bibitSekarang = null;
-            if (daftarBibit.Length > 0)
-            {
-                bibitSekarang = daftarBibit[indexBibitTerpilih];
-            }
-
-            // --- LOGIKA TEXT INDIKATOR & WARNA ---
-            if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
-            {
-                string namaBibit = (bibitSekarang != null) ? bibitSekarang.namaTanaman : "Belum Ada Bibit";
-                teksIndikator.text = "Tekan [E] untuk Tanam " + namaBibit;
-                teksIndikator.color = Color.white;
-            }
-            else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kering)
-            {
-                teksIndikator.text = "Tekan [F] untuk Menyiram";
-                teksIndikator.color = Color.cyan;
-            }
-            else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Basah)
-            {
-                teksIndikator.text = "Sedang Tumbuh... (Tunggu)";
-                teksIndikator.color = Color.yellow;
-            }
-            else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
-            {
-                teksIndikator.text = "Tekan [E] untuk Panen!";
-                teksIndikator.color = Color.green;
-            }
-
-            // --- LOGIKA INPUT INTERAKSI ---
-
-            // Tombol E (Menanam / Panen)
+            // --- INPUT INTERAKSI ---
             if (Input.GetKeyDown(KeyCode.E))
             {
                 if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
                 {
-                    if (bibitSekarang != null)
+                    if (daftarBibit.Length > 0)
                     {
-                        // PERBAIKAN ERROR 2: Menggunakan bibitSekarang, bukan bibitPilihan
-                        tanah.Tanam(bibitSekarang);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Daftar Bibit Kosong atau belum dipilih!");
+                        // Mulai urutan animasi menanam
+                        StartCoroutine(ProsesInteraksi(tanah, "Tanam"));
                     }
                 }
                 else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
                 {
-                    tanah.Panen();
+                    // Mulai urutan animasi panen
+                    StartCoroutine(ProsesInteraksi(tanah, "Panen"));
                 }
             }
 
-            // Tombol F (Menyiram)
             if (Input.GetKeyDown(KeyCode.F))
             {
                 if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kering)
                 {
-                    tanah.SiramTanaman();
+                    // Mulai urutan animasi menyiram
+                    StartCoroutine(ProsesInteraksi(tanah, "Siram"));
                 }
             }
         }
         else
         {
-            // Jika melihat objek layer tanah tapi tidak ada script TanahPertanian
             if (panelIndikator.activeSelf) panelIndikator.SetActive(false);
+        }
+    }
+
+    // --- COROUTINE UNTUK ANIMASI ---
+    IEnumerator ProsesInteraksi(TanahPertanian tanah, string aksi)
+    {
+        sedangBerinteraksi = true; // Kunci input
+
+        // 1. Putar Animasi
+        if (playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("Interact");
+        }
+
+        // 2. Tunggu sampai karakter membungkuk (misal 0.5 detik)
+        yield return new WaitForSeconds(delayAnimasi);
+
+        // 3. Eksekusi Logika Game (Munculkan tanaman/air)
+        if (aksi == "Tanam")
+        {
+            tanah.Tanam(daftarBibit[indexBibitTerpilih]);
+        }
+        else if (aksi == "Panen")
+        {
+            tanah.Panen();
+        }
+        else if (aksi == "Siram")
+        {
+            tanah.SiramTanaman();
+        }
+
+        // 4. Tunggu sisa animasi selesai (opsional, biar tidak langsung lari)
+        yield return new WaitForSeconds(0.2f);
+
+        sedangBerinteraksi = false; // Buka kunci input
+    }
+
+    // Helper untuk merapikan teks
+    void UpdateTeksIndikator(TanahPertanian tanah)
+    {
+        CropData bibitSekarang = (daftarBibit.Length > 0) ? daftarBibit[indexBibitTerpilih] : null;
+
+        if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
+        {
+            string nama = (bibitSekarang != null) ? bibitSekarang.namaTanaman : "...";
+            teksIndikator.text = "Tekan [E] untuk Tanam " + nama;
+            teksIndikator.color = Color.white;
+        }
+        else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kering)
+        {
+            teksIndikator.text = "Tekan [F] untuk Menyiram";
+            teksIndikator.color = Color.cyan;
+        }
+        else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Basah)
+        {
+            teksIndikator.text = "Sedang Tumbuh... (Tunggu)";
+            teksIndikator.color = Color.yellow;
+        }
+        else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
+        {
+            teksIndikator.text = "Tekan [E] untuk Panen!";
+            teksIndikator.color = Color.green;
         }
     }
 
