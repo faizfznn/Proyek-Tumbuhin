@@ -1,74 +1,95 @@
 using UnityEngine;
-using System.Collections; // Wajib ada untuk fitur Timer (Coroutine)
 
 public class TanahPertanian : MonoBehaviour
 {
-    public enum StatusTanah { Kosong, AdaBibit, SiapPanen }
+    // Kita pecah status 'AdaBibit' menjadi 'Kering' dan 'Basah'
+    public enum StatusTanah { Kosong, Kering, Basah, SiapPanen }
 
     [Header("Info Status")]
     public StatusTanah statusSaatIni = StatusTanah.Kosong;
 
+    [Header("Visual Tanah")]
+    public MeshRenderer rendererTanah; // Drag MeshRenderer tanah ke sini di Inspector
+    public Color warnaKering = Color.white; // Warna tanah biasa
+    public Color warnaBasah = new Color(0.4f, 0.2f, 0f); // Warna coklat tua (disiram)
+
     [Header("Pengaturan")]
     public Transform spawnPoint;
 
+    // Variabel Internal
     private GameObject modelTanamanSaatIni;
     private CropData dataTanaman;
     private int faseSekarang = 0;
+    private float timerPertumbuhan = 0f; // Timer manual
 
-    // Fungsi Menanam
-    public void Tanam(CropData bibitBaru)
+    void Start()
     {
-        if (statusSaatIni == StatusTanah.Kosong)
-        {
-            dataTanaman = bibitBaru;
-            statusSaatIni = StatusTanah.AdaBibit;
-            faseSekarang = 0;
-
-            UpdateTampilanVisual();
-
-            // MULAI TIMER TUMBUH OTOMATIS DISINI!
-            StartCoroutine(ProsesTumbuhOtomatis());
-
-            Debug.Log("Menanam " + bibitBaru.namaTanaman + ". Tunggu " + bibitBaru.waktuTumbuhPerFase + " detik...");
-        }
+        // Set warna awal
+        UbahWarnaTanah(warnaKering);
     }
 
-    // --- FITUR BARU: Timer Otomatis ---
-    IEnumerator ProsesTumbuhOtomatis()
+    void Update()
     {
-        // Selama tanaman belum siap panen...
-        while (statusSaatIni == StatusTanah.AdaBibit && faseSekarang < dataTanaman.modelFase.Length - 1)
+        // LOGIKA UTAMA: Hanya tumbuh jika statusnya BASAH
+        if (statusSaatIni == StatusTanah.Basah)
         {
-            // 1. Tunggu selama X detik (sesuai data di CropData)
-            yield return new WaitForSeconds(dataTanaman.waktuTumbuhPerFase);
+            timerPertumbuhan += Time.deltaTime;
 
-            // 2. Setelah menunggu, cek apakah tanaman masih ada (belum mati/dihapus)
-            if (statusSaatIni == StatusTanah.AdaBibit)
+            // Cek apakah waktu fase ini sudah selesai?
+            if (timerPertumbuhan >= dataTanaman.waktuTumbuhPerFase)
             {
                 TumbuhSatuLevel();
             }
         }
     }
 
-    void TumbuhSatuLevel()
+    public void Tanam(CropData bibitBaru)
     {
-        faseSekarang++;
-        UpdateTampilanVisual();
-
-        // Cek apakah sudah tahap terakhir?
-        if (faseSekarang >= dataTanaman.modelFase.Length - 1)
+        if (statusSaatIni == StatusTanah.Kosong)
         {
-            statusSaatIni = StatusTanah.SiapPanen;
-            Debug.Log("Tanaman Siap Panen!");
+            dataTanaman = bibitBaru;
+            faseSekarang = 0;
+            timerPertumbuhan = 0f;
+
+            // Saat pertama ditanam, tanah dalam kondisi KERING (Butuh air pertama)
+            statusSaatIni = StatusTanah.Kering;
+            UbahWarnaTanah(warnaKering);
+
+            UpdateTampilanVisual();
+            Debug.Log("Menanam " + bibitBaru.namaTanaman + ". Tanah Kering, perlu disiram!");
         }
     }
 
-    // Fungsi debug manual (tetap disimpan kalau mau cheat tumbuh instan)
-    public void TumbuhManual()
+    // Fungsi Baru: Menyiram Tanaman
+    public void SiramTanaman()
     {
-        if (statusSaatIni == StatusTanah.AdaBibit && faseSekarang < dataTanaman.modelFase.Length - 1)
+        if (statusSaatIni == StatusTanah.Kering)
         {
-            TumbuhSatuLevel();
+            statusSaatIni = StatusTanah.Basah;
+            UbahWarnaTanah(warnaBasah); // Ubah jadi gelap
+            Debug.Log("Tanaman disiram! Mulai tumbuh...");
+        }
+    }
+
+    void TumbuhSatuLevel()
+    {
+        faseSekarang++;
+        timerPertumbuhan = 0f; // Reset timer untuk fase berikutnya
+        UpdateTampilanVisual();
+
+        // Cek apakah sudah tahap terakhir (Siap Panen)?
+        if (faseSekarang >= dataTanaman.modelFase.Length - 1)
+        {
+            statusSaatIni = StatusTanah.SiapPanen;
+            UbahWarnaTanah(warnaKering); // Kembalikan warna normal saat panen
+            Debug.Log("Tanaman Siap Panen!");
+        }
+        else
+        {
+            // Jika belum panen, tanah KEMBALI KERING (Pemain harus siram lagi)
+            statusSaatIni = StatusTanah.Kering;
+            UbahWarnaTanah(warnaKering);
+            Debug.Log("Tanaman tumbuh besar. Tanah kembali kering!");
         }
     }
 
@@ -76,7 +97,6 @@ public class TanahPertanian : MonoBehaviour
     {
         if (modelTanamanSaatIni != null) Destroy(modelTanamanSaatIni);
 
-        // Pastikan index tidak error
         if (faseSekarang < dataTanaman.modelFase.Length)
         {
             GameObject modelBaru = dataTanaman.modelFase[faseSekarang];
@@ -89,12 +109,21 @@ public class TanahPertanian : MonoBehaviour
     {
         if (statusSaatIni == StatusTanah.SiapPanen)
         {
-            Debug.Log("Panen Berhasil!");
             Destroy(modelTanamanSaatIni);
             statusSaatIni = StatusTanah.Kosong;
             dataTanaman = null;
-            // Stop semua timer yang berjalan di tanah ini supaya aman
-            StopAllCoroutines();
+            faseSekarang = 0;
+            timerPertumbuhan = 0;
+            Debug.Log("Panen Berhasil!");
+        }
+    }
+
+    // Helper untuk ubah warna material tanah
+    void UbahWarnaTanah(Color warnaTarget)
+    {
+        if (rendererTanah != null)
+        {
+            rendererTanah.material.color = warnaTarget;
         }
     }
 }
