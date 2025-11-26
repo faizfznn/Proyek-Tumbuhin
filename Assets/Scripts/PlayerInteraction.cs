@@ -1,6 +1,6 @@
 using UnityEngine;
 using TMPro;
-using System.Collections; // Wajib untuk Coroutine
+using System.Collections;
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -16,10 +16,23 @@ public class PlayerInteraction : MonoBehaviour
     public CropData[] daftarBibit;
     private int indexBibitTerpilih = 0;
 
-    [Header("Animasi")]
-    public Animator playerAnimator; // Masukkan Animator karakter di sini
-    public float delayAnimasi = 0.5f; // Waktu tunggu sampai tangan menyentuh tanah
-    private bool sedangBerinteraksi = false; // Mencegah spam tombol
+    [Header("Animasi & Gerak")]
+    public Animator playerAnimator;
+    public float delayAnimasi = 0.5f;
+    private bool sedangBerinteraksi = false;
+
+    // --- [BARU] Variabel untuk Script Gerak ---
+    // Masukkan script yang buat karakter jalan di sini (misal: SimpleSampleCharacterControl)
+    public MonoBehaviour scriptGerakKarakter;
+
+    // --- [BARU] Variabel Rigidbody (Otomatis diambil) ---
+    private Rigidbody rb;
+
+    void Start()
+    {
+        // Cari rigidbody di object ini
+        rb = GetComponent<Rigidbody>();
+    }
 
     void Update()
     {
@@ -43,7 +56,7 @@ public class PlayerInteraction : MonoBehaviour
         if (tanah != null)
         {
             panelIndikator.SetActive(true);
-            UpdateTeksIndikator(tanah); // Fungsi helper biar rapi (lihat bawah)
+            UpdateTeksIndikator(tanah);
 
             // --- INPUT INTERAKSI ---
             if (Input.GetKeyDown(KeyCode.E))
@@ -52,13 +65,11 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     if (daftarBibit.Length > 0)
                     {
-                        // Mulai urutan animasi menanam
                         StartCoroutine(ProsesInteraksi(tanah, "Tanam"));
                     }
                 }
                 else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
                 {
-                    // Mulai urutan animasi panen
                     StartCoroutine(ProsesInteraksi(tanah, "Panen"));
                 }
             }
@@ -67,7 +78,6 @@ public class PlayerInteraction : MonoBehaviour
             {
                 if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kering)
                 {
-                    // Mulai urutan animasi menyiram
                     StartCoroutine(ProsesInteraksi(tanah, "Siram"));
                 }
             }
@@ -81,7 +91,20 @@ public class PlayerInteraction : MonoBehaviour
     // --- COROUTINE UNTUK ANIMASI ---
     IEnumerator ProsesInteraksi(TanahPertanian tanah, string aksi)
     {
-        sedangBerinteraksi = true; // Kunci input
+        sedangBerinteraksi = true; // Kunci input interaksi
+
+        // --- [BARU] Matikan Pergerakan Karakter ---
+        if (scriptGerakKarakter != null)
+        {
+            scriptGerakKarakter.enabled = false; // Matikan script jalan
+        }
+
+        // --- [BARU] Hentikan Sisa Kecepatan Fisika (Biar gak meluncur) ---
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
 
         // 1. Putar Animasi
         if (playerAnimator != null)
@@ -89,10 +112,10 @@ public class PlayerInteraction : MonoBehaviour
             playerAnimator.SetTrigger("Interact");
         }
 
-        // 2. Tunggu sampai karakter membungkuk (misal 0.5 detik)
+        // 2. Tunggu sampai karakter membungkuk
         yield return new WaitForSeconds(delayAnimasi);
 
-        // 3. Eksekusi Logika Game (Munculkan tanaman/air)
+        // 3. Eksekusi Logika Game 
         if (aksi == "Tanam")
         {
             tanah.Tanam(daftarBibit[indexBibitTerpilih]);
@@ -106,15 +129,21 @@ public class PlayerInteraction : MonoBehaviour
             tanah.SiramTanaman();
         }
 
-        // 4. Tunggu sisa animasi selesai (opsional, biar tidak langsung lari)
-        yield return new WaitForSeconds(0.2f);
+        // 4. Tunggu sisa animasi selesai (opsional)
+        yield return new WaitForSeconds(0.5f); // Tambah sedikit waktu biar animasi berdiri selesai
+
+        // --- [BARU] Nyalakan Kembali Pergerakan ---
+        if (scriptGerakKarakter != null)
+        {
+            scriptGerakKarakter.enabled = true;
+        }
 
         sedangBerinteraksi = false; // Buka kunci input
     }
 
-    // Helper untuk merapikan teks
     void UpdateTeksIndikator(TanahPertanian tanah)
     {
+        // (Isi fungsi ini tetap sama seperti kode Anda sebelumnya)
         CropData bibitSekarang = (daftarBibit.Length > 0) ? daftarBibit[indexBibitTerpilih] : null;
 
         if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
@@ -142,6 +171,7 @@ public class PlayerInteraction : MonoBehaviour
 
     void PilihBibitInput()
     {
+        // (Isi fungsi ini tetap sama)
         if (Input.GetKeyDown(KeyCode.Alpha1) && daftarBibit.Length > 0) indexBibitTerpilih = 0;
         if (Input.GetKeyDown(KeyCode.Alpha2) && daftarBibit.Length > 1) indexBibitTerpilih = 1;
         if (Input.GetKeyDown(KeyCode.Alpha3) && daftarBibit.Length > 2) indexBibitTerpilih = 2;
