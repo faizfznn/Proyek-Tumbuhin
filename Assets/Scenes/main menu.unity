@@ -1722,9 +1722,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Lorem Ipsum Dolor Sit Amet
-
-'
+  m_text: "Game Tumbuh.in ini dibuat oleh kelompok Renovasi Camp Nou yang beranggotakan\n-
+    Ariiq Tsany Zu \r\n- Arif Athaya Harahap \r\n- Nugrah Ramadhani \n- Muhammad
+    Faiz Fauzan\r\n"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 61d8b794b825a1248bc8a761fce55aba, type: 2}
   m_sharedMaterial: {fileID: 7249651697497455753, guid: 61d8b794b825a1248bc8a761fce55aba, type: 2}
