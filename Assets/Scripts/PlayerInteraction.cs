@@ -8,9 +8,12 @@ public class PlayerInteraction : MonoBehaviour
     public float jarakAmbil = 5f;
     public LayerMask layerTanah;
 
-    [Header("UI Indikator")]
-    public GameObject panelIndikator;
-    public TextMeshProUGUI teksIndikator;
+    // [Header("UI Indikator Lama")]  <-- Hapus atau Comment UI lama Anda
+    // public GameObject panelIndikator;
+    // public TextMeshProUGUI teksIndikator;
+
+    [Header("UI Sistem Baru")]
+    public HotbarUI hotbarUI; // Masukkan script HotbarUI di sini
 
     [Header("Sistem Bibit")]
     public CropData[] daftarBibit;
@@ -20,158 +23,121 @@ public class PlayerInteraction : MonoBehaviour
     public Animator playerAnimator;
     public float delayAnimasi = 0.5f;
     private bool sedangBerinteraksi = false;
-
-    // --- [BARU] Variabel untuk Script Gerak ---
-    // Masukkan script yang buat karakter jalan di sini (misal: SimpleSampleCharacterControl)
     public MonoBehaviour scriptGerakKarakter;
-
-    // --- [BARU] Variabel Rigidbody (Otomatis diambil) ---
     private Rigidbody rb;
 
     void Start()
     {
-        // Cari rigidbody di object ini
         rb = GetComponent<Rigidbody>();
+
+        // --- [BARU] Kirim data gambar ke Hotbar saat mulai ---
+        if (hotbarUI != null)
+        {
+            hotbarUI.InisialisasiSlot(daftarBibit);
+            hotbarUI.UpdateSeleksiSlot(indexBibitTerpilih);
+        }
     }
 
     void Update()
     {
-        // Jangan proses input jika sedang animasi
         if (sedangBerinteraksi) return;
 
+        // --- 1. INPUT GANTI BIBIT ---
+        int indexLama = indexBibitTerpilih;
         PilihBibitInput();
 
+        // Jika index berubah, update UI Slot
+        if (indexLama != indexBibitTerpilih && hotbarUI != null)
+        {
+            hotbarUI.UpdateSeleksiSlot(indexBibitTerpilih);
+        }
+
+        // --- 2. DETEKSI TANAH ---
         Ray ray = new Ray(transform.position, transform.forward);
         RaycastHit hit;
         bool melihatTanah = Physics.Raycast(ray, out hit, jarakAmbil, layerTanah);
 
-        if (!melihatTanah)
+        // Variabel Status untuk UI
+        bool bisaTanam = false;
+        bool bisaPanen = false;
+        bool bisaSiram = false;
+        TanahPertanian tanahTarget = null;
+
+        if (melihatTanah)
         {
-            if (panelIndikator.activeSelf) panelIndikator.SetActive(false);
-            return;
+            tanahTarget = hit.collider.GetComponent<TanahPertanian>();
+
+            if (tanahTarget != null)
+            {
+                // Cek Status Tanah untuk menentukan tombol mana yang aktif
+                if (tanahTarget.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
+                {
+                    bisaTanam = true;
+                }
+                else if (tanahTarget.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
+                {
+                    bisaPanen = true;
+                }
+
+                if (tanahTarget.statusSaatIni == TanahPertanian.StatusTanah.Kering)
+                {
+                    bisaSiram = true;
+                }
+            }
         }
 
-        TanahPertanian tanah = hit.collider.GetComponent<TanahPertanian>();
-
-        if (tanah != null)
+        // --- 3. KIRIM STATUS KE HOTBAR UI ---
+        if (hotbarUI != null)
         {
-            panelIndikator.SetActive(true);
-            UpdateTeksIndikator(tanah);
+            hotbarUI.UpdateVisualAksi(bisaTanam, bisaPanen, bisaSiram);
+        }
 
-            // --- INPUT INTERAKSI ---
+        // --- 4. EKSEKUSI INPUT ---
+        if (tanahTarget != null)
+        {
             if (Input.GetKeyDown(KeyCode.E))
             {
-                if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
-                {
-                    if (daftarBibit.Length > 0)
-                    {
-                        StartCoroutine(ProsesInteraksi(tanah, "Tanam"));
-                    }
-                }
-                else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
-                {
-                    StartCoroutine(ProsesInteraksi(tanah, "Panen"));
-                }
+                if (bisaTanam && daftarBibit.Length > 0)
+                    StartCoroutine(ProsesInteraksi(tanahTarget, "Tanam"));
+
+                else if (bisaPanen)
+                    StartCoroutine(ProsesInteraksi(tanahTarget, "Panen"));
             }
 
             if (Input.GetKeyDown(KeyCode.F))
             {
-                if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kering)
-                {
-                    StartCoroutine(ProsesInteraksi(tanah, "Siram"));
-                }
+                if (bisaSiram)
+                    StartCoroutine(ProsesInteraksi(tanahTarget, "Siram"));
             }
         }
-        else
-        {
-            if (panelIndikator.activeSelf) panelIndikator.SetActive(false);
-        }
     }
 
-    // --- COROUTINE UNTUK ANIMASI ---
+    // ... (Fungsi Coroutine ProsesInteraksi TETAP SAMA, jangan dihapus) ...
+    // ... (Copy Paste fungsi IEnumerator ProsesInteraksi dari kode sebelumnya ke sini) ...
+
     IEnumerator ProsesInteraksi(TanahPertanian tanah, string aksi)
     {
-        sedangBerinteraksi = true; // Kunci input interaksi
+        sedangBerinteraksi = true;
 
-        // --- [BARU] Matikan Pergerakan Karakter ---
-        if (scriptGerakKarakter != null)
-        {
-            scriptGerakKarakter.enabled = false; // Matikan script jalan
-        }
+        if (scriptGerakKarakter != null) scriptGerakKarakter.enabled = false;
+        if (rb != null) rb.linearVelocity = Vector3.zero;
 
-        // --- [BARU] Hentikan Sisa Kecepatan Fisika (Biar gak meluncur) ---
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-        }
+        if (playerAnimator != null) playerAnimator.SetTrigger("Interact");
 
-        // 1. Putar Animasi
-        if (playerAnimator != null)
-        {
-            playerAnimator.SetTrigger("Interact");
-        }
-
-        // 2. Tunggu sampai karakter membungkuk
         yield return new WaitForSeconds(delayAnimasi);
 
-        // 3. Eksekusi Logika Game 
-        if (aksi == "Tanam")
-        {
-            tanah.Tanam(daftarBibit[indexBibitTerpilih]);
-        }
-        else if (aksi == "Panen")
-        {
-            tanah.Panen();
-        }
-        else if (aksi == "Siram")
-        {
-            tanah.SiramTanaman();
-        }
+        if (aksi == "Tanam") tanah.Tanam(daftarBibit[indexBibitTerpilih]);
+        else if (aksi == "Panen") tanah.Panen();
+        else if (aksi == "Siram") tanah.SiramTanaman();
 
-        // 4. Tunggu sisa animasi selesai (opsional)
-        yield return new WaitForSeconds(0.5f); // Tambah sedikit waktu biar animasi berdiri selesai
+        yield return new WaitForSeconds(0.5f);
 
-        // --- [BARU] Nyalakan Kembali Pergerakan ---
-        if (scriptGerakKarakter != null)
-        {
-            scriptGerakKarakter.enabled = true;
-        }
-
-        sedangBerinteraksi = false; // Buka kunci input
-    }
-
-    void UpdateTeksIndikator(TanahPertanian tanah)
-    {
-        // (Isi fungsi ini tetap sama seperti kode Anda sebelumnya)
-        CropData bibitSekarang = (daftarBibit.Length > 0) ? daftarBibit[indexBibitTerpilih] : null;
-
-        if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kosong)
-        {
-            string nama = (bibitSekarang != null) ? bibitSekarang.namaTanaman : "...";
-            teksIndikator.text = "Tekan [E] untuk Tanam " + nama;
-            teksIndikator.color = Color.white;
-        }
-        else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Kering)
-        {
-            teksIndikator.text = "Tekan [F] untuk Menyiram";
-            teksIndikator.color = Color.cyan;
-        }
-        else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.Basah)
-        {
-            teksIndikator.text = "Sedang Tumbuh... (Tunggu)";
-            teksIndikator.color = Color.yellow;
-        }
-        else if (tanah.statusSaatIni == TanahPertanian.StatusTanah.SiapPanen)
-        {
-            teksIndikator.text = "Tekan [E] untuk Panen!";
-            teksIndikator.color = Color.green;
-        }
+        if (scriptGerakKarakter != null) scriptGerakKarakter.enabled = true;
+        sedangBerinteraksi = false;
     }
 
     void PilihBibitInput()
     {
-        // (Isi fungsi ini tetap sama)
         if (Input.GetKeyDown(KeyCode.Alpha1) && daftarBibit.Length > 0) indexBibitTerpilih = 0;
         if (Input.GetKeyDown(KeyCode.Alpha2) && daftarBibit.Length > 1) indexBibitTerpilih = 1;
         if (Input.GetKeyDown(KeyCode.Alpha3) && daftarBibit.Length > 2) indexBibitTerpilih = 2;

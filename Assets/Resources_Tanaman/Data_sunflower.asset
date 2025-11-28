@@ -18,3 +18,4 @@ MonoBehaviour:
   - {fileID: 4029996152737623616, guid: 8f310ba589526d142839442e3eb756d0, type: 3}
   - {fileID: 1889704791735354376, guid: cf67da592a170c44a84fb43b95f4d848, type: 3}
   waktuTumbuhPerFase: 5
+  iconTanaman: {fileID: 21300000, guid: b4b94f7ed67f66f4f8484e84ab20727e, type: 3}

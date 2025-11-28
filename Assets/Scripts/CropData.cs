@@ -13,4 +13,7 @@ public class CropData : ScriptableObject
 
     [Header("Pengaturan")]
     public float waktuTumbuhPerFase = 5f; // Berapa detik untuk tumbuh ke fase berikutnya
+
+    [Header("Visual UI")]
+    public Sprite iconTanaman; // Masukkan gambar bibit/tanaman di sini
 }
