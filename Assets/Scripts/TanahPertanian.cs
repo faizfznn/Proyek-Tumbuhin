@@ -18,6 +18,11 @@ public class TanahPertanian : MonoBehaviour
     [Header("Pengaturan")]
     public Transform spawnPoint;
 
+    [Header("Efek Visual (Partikel)")]
+    // --- Slot untuk Prefab Partikel ---
+    public GameObject efekDebuPrefab; // Masukkan Particle System Debu di sini
+    public GameObject efekAirPrefab;  // Masukkan Particle System Air di sini
+
     // Variabel Internal
     private GameObject modelTanamanSaatIni;
     private CropData dataTanaman;
@@ -26,7 +31,7 @@ public class TanahPertanian : MonoBehaviour
 
     void Awake()
     {
-        // --- AUTO DETECT RENDERER (Supaya tidak perlu drag-drop manual) ---
+        // --- AUTO DETECT RENDERER ---
         rendererTanah = GetComponent<MeshRenderer>();
         if (rendererTanah == null) rendererTanah = GetComponentInChildren<MeshRenderer>();
 
@@ -53,6 +58,20 @@ public class TanahPertanian : MonoBehaviour
         }
     }
 
+    // --- FUNGSI UTAMA PARTIKEL (DIPERTAHANKAN) ---
+    void MunculkanPartikel(GameObject prefabPartikel)
+    {
+        if (prefabPartikel != null)
+        {
+            // 1. Munculkan partikel
+            GameObject partikelBaru = Instantiate(prefabPartikel, spawnPoint.position, Quaternion.identity);
+
+            // 2. [PENTING] Hancurkan objek partikel setelah 2 detik
+            // Ini mencegah partikel menumpuk di Hierarchy dan memastikan air berhenti total
+            Destroy(partikelBaru, 2f);
+        }
+    }
+
     public void Tanam(CropData bibitBaru)
     {
         if (statusSaatIni == StatusTanah.Kosong)
@@ -61,9 +80,12 @@ public class TanahPertanian : MonoBehaviour
             faseSekarang = 0;
             timerPertumbuhan = 0f;
 
-            // Set status awal: Kering (Perlu disiram pertama kali)
+            // Set status awal: Kering
             statusSaatIni = StatusTanah.Kering;
             UbahWarnaTanah(warnaKering);
+
+            // --- Munculkan Efek Debu saat menanam ---
+            MunculkanPartikel(efekDebuPrefab);
 
             UpdateTampilanVisual();
         }
@@ -75,6 +97,9 @@ public class TanahPertanian : MonoBehaviour
         {
             statusSaatIni = StatusTanah.Basah;
             UbahWarnaTanah(warnaBasah);
+
+            // --- Munculkan Efek Air saat menyiram ---
+            MunculkanPartikel(efekAirPrefab);
         }
     }
 
@@ -83,6 +108,9 @@ public class TanahPertanian : MonoBehaviour
         faseSekarang++;
         timerPertumbuhan = 0f;
         UpdateTampilanVisual();
+
+        // --- Munculkan Efek Debu kecil saat tumbuh (Opsional) ---
+        MunculkanPartikel(efekDebuPrefab);
 
         if (faseSekarang >= dataTanaman.modelFase.Length - 1)
         {
@@ -108,7 +136,7 @@ public class TanahPertanian : MonoBehaviour
             modelTanamanSaatIni = Instantiate(modelBaru, spawnPoint.position, Quaternion.identity);
             modelTanamanSaatIni.transform.parent = this.transform;
 
-            // --- [BAGIAN BARU] JALANKAN ANIMASI POP-UP ---
+            // JALANKAN ANIMASI POP-UP
             StartCoroutine(AnimasiPopUp(modelTanamanSaatIni.transform));
         }
     }
@@ -117,6 +145,9 @@ public class TanahPertanian : MonoBehaviour
     {
         if (statusSaatIni == StatusTanah.SiapPanen)
         {
+            // --- Munculkan Efek Debu/Confetti saat panen ---
+            MunculkanPartikel(efekDebuPrefab);
+
             Destroy(modelTanamanSaatIni);
             statusSaatIni = StatusTanah.Kosong;
             dataTanaman = null;
@@ -130,32 +161,30 @@ public class TanahPertanian : MonoBehaviour
         if (rendererTanah != null) rendererTanah.material.color = warnaTarget;
     }
 
-    // --- [FITUR BARU] FUNGSI ANIMASI POP-UP ---
+    // FUNGSI ANIMASI POP-UP
     IEnumerator AnimasiPopUp(Transform target)
     {
-        float durasi = 0.4f; // Kecepatan animasi (makin kecil makin cepat)
+        float durasi = 0.4f;
         float timer = 0f;
 
-        Vector3 skalaAwal = Vector3.zero;      // Mulai dari 0
-        Vector3 skalaAkhir = Vector3.one;      // Ke ukuran asli (1)
+        Vector3 skalaAwal = Vector3.zero;
+        Vector3 skalaAkhir = Vector3.one;
 
-        target.localScale = skalaAwal; // Set awal jadi 0
+        target.localScale = skalaAwal;
 
         while (timer < durasi)
         {
             timer += Time.deltaTime;
             float progress = timer / durasi;
 
-            // --- RUMUS MATEMATIKA "ELASTIC OUT" ---
-            // Ini bikin efek membal sedikit melebihi ukuran asli lalu kembali normal
+            // Rumus Elastic Out
             float curve = Mathf.Sin(progress * Mathf.PI * (0.2f + 2.5f * progress * progress * progress)) * Mathf.Pow(1f - progress, 2.2f) + progress;
 
-            // Terapkan skala
             target.localScale = Vector3.LerpUnclamped(skalaAwal, skalaAkhir, curve);
 
-            yield return null; // Tunggu frame berikutnya
+            yield return null;
         }
 
-        target.localScale = skalaAkhir; // Pastikan ukuran final pas 1
+        target.localScale = skalaAkhir;
     }
 }
