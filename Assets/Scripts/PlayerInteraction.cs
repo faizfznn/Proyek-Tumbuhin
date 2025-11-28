@@ -98,16 +98,16 @@ public class PlayerInteraction : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.E))
             {
                 if (bisaTanam && daftarBibit.Length > 0)
-                    StartCoroutine(ProsesInteraksi(tanahTarget, "Tanam"));
+                    StartCoroutine(ProsesInteraksi(tanahTarget, "Tekan E Untuk Tanam"));
 
                 else if (bisaPanen)
-                    StartCoroutine(ProsesInteraksi(tanahTarget, "Panen"));
+                    StartCoroutine(ProsesInteraksi(tanahTarget, "Tekan E Untuk Panen"));
             }
 
             if (Input.GetKeyDown(KeyCode.F))
             {
                 if (bisaSiram)
-                    StartCoroutine(ProsesInteraksi(tanahTarget, "Siram"));
+                    StartCoroutine(ProsesInteraksi(tanahTarget, "Tekan F Untuk Siram"));
             }
         }
     }
@@ -126,9 +126,9 @@ public class PlayerInteraction : MonoBehaviour
 
         yield return new WaitForSeconds(delayAnimasi);
 
-        if (aksi == "Tanam") tanah.Tanam(daftarBibit[indexBibitTerpilih]);
-        else if (aksi == "Panen") tanah.Panen();
-        else if (aksi == "Siram") tanah.SiramTanaman();
+        if (aksi == "Tekan E Untuk Tanam") tanah.Tanam(daftarBibit[indexBibitTerpilih]);
+        else if (aksi == "Tekan E Untuk Panen") tanah.Panen();
+        else if (aksi == "Tekan F Untuk Siram") tanah.SiramTanaman();
 
         yield return new WaitForSeconds(0.5f);
 
