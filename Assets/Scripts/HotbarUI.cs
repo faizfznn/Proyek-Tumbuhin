@@ -56,12 +56,12 @@ public class HotbarUI : MonoBehaviour
         if (bisaTanam)
         {
             imgTombolE.color = warnaTombolAktif;
-            textE.text = "Tanam";
+            textE.text = "Tekan E Untuk Tanam";
         }
         else if (bisaPanen)
         {
             imgTombolE.color = Color.green; // Hijau saat panen
-            textE.text = "Panen!";
+            textE.text = "Tekan E Untuk Panen!";
         }
         else
         {
@@ -73,7 +73,7 @@ public class HotbarUI : MonoBehaviour
         if (bisaSiram)
         {
             imgTombolF.color = Color.cyan; // Biru air
-            textF.text = "Siram";
+            textF.text = "Tekan F Untuk Siram";
         }
         else
         {
